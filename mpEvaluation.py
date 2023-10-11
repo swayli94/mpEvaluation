@@ -19,6 +19,8 @@ class Problem():
     '''
     Problem for the user-defined function.
     
+    >>> prob = Problem(dim_input, dim_output, name_inputs=None, name_outputs=None)
+    
     Parameters
     --------------
     dim_input: int
@@ -231,6 +233,9 @@ class Problem():
 class MultiProcessEvaluation():
     '''
     Multi-process evaluation of a user-defined function `y=func(x, **kwargs)`.
+    
+    >>> mpRun = MultiProcessEvaluation(dim_input, dim_output, func=None, 
+    >>>                 n_process=None, information=True, timeout=None)
 
     Parameters
     --------------
@@ -526,7 +531,7 @@ if __name__ == '__main__':
     dim_input = 2
     dim_output = 1
     n_sample = 10
-    n_process = 1
+    n_process = 4
     
     prob = Problem(dim_input, dim_output)
     xs = np.array([[i,i] for i in range(n_sample)])
