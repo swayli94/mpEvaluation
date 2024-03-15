@@ -229,6 +229,114 @@ class Problem():
 
         return succeed, y
 
+    def output_database(self, fname: str, xs: np.ndarray, ys=None, list_succeed=None):
+        '''
+        Output database, including the inputs and the outputs.
+        
+        Parameters
+        ---------------
+        fname: str
+            database file name
+            
+        xs: ndarray [n, dim_input]
+            function inputs
+        
+        ys: None, or ndarray [n, dim_output]
+            function outputs
+            
+        list_succeed: None, or list [bool]
+            list of succeed for each input.
+            If it is provided, only output samples that succeeded its evaluation.
+        '''
+        with open(fname, 'w') as f:
+            
+            f.write('Variables= ID')
+            for j in range(self.dim_output):
+                f.write(' %14s'%(self.name_outputs[j]))
+                
+            if ys is not None:
+                for j in range(self.dim_input):
+                    f.write(' %14s'%(self.name_inputs[j]))
+                    
+            f.write('\n')
+            
+            for i in range(xs.shape[0]):
+                
+                if list_succeed is not None:
+                    if not list_succeed[i]:
+                        continue
+                    
+                f.write('   %10d'%(i+1))
+                
+                if ys is not None:
+                    for j in range(self.dim_output):
+                        f.write(' %14.6E'%(ys[i,j]))
+                    
+                for j in range(self.dim_input):
+                    f.write(' %14.6E'%(xs[i,j]))
+                f.write('\n')
+
+    def read_database(self, fname: str, have_output=True, dim_input=None, dim_output=None):
+        '''
+        Read database from file.
+        
+        Parameters
+        ----------------
+        fname: str
+            database file name
+            
+        have_output: bool
+            whether the file contains sample output.
+        
+        dim_input: None, or int
+            user specified input dimension.
+            This is needed when load database from another problem.
+        
+        dim_output: None, or int
+            user specified output dimension.
+            This is needed when load database from another problem.
+            
+        Returns
+        ----------------
+        ids: list [n]
+            list of sample ID
+        
+        xs: ndarray [n, dim_input]
+            function inputs
+        
+        ys: None, or ndarray [n, dim_output]
+            function outputs
+        '''
+        if dim_input is None:
+            dim_input = self.dim_input
+        
+        if dim_output is None:
+            dim_output = self.dim_output
+        
+        with open(fname, 'r') as f:
+            lines = f.readlines()
+            
+        ids = []
+        xs = []
+        ys = [] if have_output else None
+        
+        for line in lines[1:]:
+            
+            line = line.split()
+            
+            ids.append(int(line[0]))
+            
+            if have_output:
+                
+                ys.append([float(line[i+1]) for i in range(dim_output)])
+            
+            xs.append([float(line[i+1+dim_output]) for i in range(dim_input)])
+        
+        if have_output:
+            ys = np.array(ys)
+        
+        return ids, np.array(xs), ys
+    
 
 class MultiProcessEvaluation():
     '''
