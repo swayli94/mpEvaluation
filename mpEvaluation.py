@@ -229,7 +229,7 @@ class Problem():
 
         return succeed, y
 
-    def output_database(self, fname: str, xs: np.ndarray, ys=None, list_succeed=None):
+    def output_database(self, fname: str, xs: np.ndarray, ids=None, ys=None, list_succeed=None):
         '''
         Output database, including the inputs and the outputs.
         
@@ -241,6 +241,9 @@ class Problem():
         xs: ndarray [n, dim_input]
             function inputs
         
+        ids: None, or list [n]
+            list of sample ID
+        
         ys: None, or ndarray [n, dim_output]
             function outputs
             
@@ -248,6 +251,9 @@ class Problem():
             list of succeed for each input.
             If it is provided, only output samples that succeeded its evaluation.
         '''
+        if ids is None:
+            ids = [i+1 for i in range(xs.shape[0])]
+            
         with open(fname, 'w') as f:
             
             f.write('Variables= ID')
@@ -266,7 +272,7 @@ class Problem():
                     if not list_succeed[i]:
                         continue
                     
-                f.write('   %10d'%(i+1))
+                f.write('   %10d'%(ids[i]))
                 
                 if ys is not None:
                     for j in range(self.dim_output):
