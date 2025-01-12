@@ -9,6 +9,7 @@ ProcessPoolExecutor:
 import os
 import numpy as np
 import time
+from typing import List, Tuple
 import concurrent
 import concurrent.futures
 from concurrent.futures import as_completed
@@ -257,12 +258,13 @@ class Problem():
         with open(fname, 'w') as f:
             
             f.write('Variables= ID')
-            for j in range(self.dim_output):
-                f.write(' %14s'%(self.name_outputs[j]))
-                
+            
             if ys is not None:
-                for j in range(self.dim_input):
-                    f.write(' %14s'%(self.name_inputs[j]))
+                for j in range(self.dim_output):
+                    f.write(' %14s'%(self.name_outputs[j]))
+                
+            for j in range(self.dim_input):
+                f.write(' %14s'%(self.name_inputs[j]))
                     
             f.write('\n')
             
@@ -326,9 +328,12 @@ class Problem():
         xs = []
         ys = [] if have_output else None
         
-        for line in lines[1:]:
+        for line in lines:
             
             line = line.split()
+            
+            if line[0]=='Variables=' or line[0]=='#':
+                continue
             
             ids.append(int(line[0]))
             
@@ -336,12 +341,66 @@ class Problem():
                 
                 ys.append([float(line[i+1]) for i in range(dim_output)])
             
-            xs.append([float(line[i+1+dim_output]) for i in range(dim_input)])
+                xs.append([float(line[i+1+dim_output]) for i in range(dim_input)])
+                
+            else:
+                
+                xs.append([float(line[i+1]) for i in range(dim_input)])
         
         if have_output:
             ys = np.array(ys)
         
         return ids, np.array(xs), ys
+    
+    def remove_duplicate_samples(self, xs: np.ndarray, ys: np.ndarray, ids: List[int], 
+                                    indexes_parameter: List[int] | None = None) -> Tuple[np.ndarray, np.ndarray, List[int], List[int]]:
+        '''
+        Remove duplicate samples from the dataset.
+        
+        Parameters
+        ----------------
+        xs: ndarray [n, dim_input]
+            function inputs
+        
+        ys: ndarray [n, dim_output]
+            function outputs
+        
+        ids: list [n]
+            list of sample ID
+        
+        indexes_parameter: list [n_parameter] or None
+            list of indexes of the parameters that are used to determine the uniqueness of the samples.
+            If `indexes_parameter` is None, all parameters are used.
+        
+        Returns
+        ----------------
+        xs_new: ndarray [n_new, dim_input]
+            function inputs
+            
+        ys_new: ndarray [n_new, dim_output]
+            function outputs
+            
+        ids_new: list [n_new]
+            list of sample ID
+        
+        indexes: list [n]
+            list of indexes of the unique samples in the original dataset.
+        '''
+        xs_for_check = xs if indexes_parameter is None else xs[:,indexes_parameter]
+        
+        indexes = []
+        for i in range(xs.shape[0]):
+            for j in range(i+1, xs.shape[0]):
+                if np.all(xs_for_check[i,:] == xs_for_check[j,:]):
+                    break
+            else:
+                indexes.append(i)
+                
+        xs_new = xs[indexes,:]
+        ys_new = ys[indexes,:]
+        ids_new = [ids[i] for i in indexes]
+        
+        return xs_new, ys_new, ids_new, indexes
     
 
 class MultiProcessEvaluation():
