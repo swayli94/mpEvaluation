@@ -352,7 +352,8 @@ class Problem():
         
         return ids, np.array(xs), ys
     
-    def remove_duplicate_samples(self, xs: np.ndarray, ys: np.ndarray, ids: List[int], 
+    @staticmethod
+    def remove_duplicate_samples(xs: np.ndarray, ys: np.ndarray = None, ids: List[int] = None, 
                                     indexes_parameter: List[int] | None = None) -> Tuple[np.ndarray, np.ndarray, List[int], List[int]]:
         '''
         Remove duplicate samples from the dataset.
@@ -362,10 +363,10 @@ class Problem():
         xs: ndarray [n, dim_input]
             function inputs
         
-        ys: ndarray [n, dim_output]
+        ys: ndarray [n, dim_output] | None
             function outputs
         
-        ids: list [n]
+        ids: list [n] | None
             list of sample ID
         
         indexes_parameter: list [n_parameter] or None
@@ -377,7 +378,7 @@ class Problem():
         xs_new: ndarray [n_new, dim_input]
             function inputs
             
-        ys_new: ndarray [n_new, dim_output]
+        ys_new: ndarray [n_new, dim_output] | None
             function outputs
             
         ids_new: list [n_new]
@@ -388,20 +389,92 @@ class Problem():
         '''
         xs_for_check = xs if indexes_parameter is None else xs[:,indexes_parameter]
         
-        indexes = []
-        for i in range(xs.shape[0]):
-            for j in range(i+1, xs.shape[0]):
-                if np.all(xs_for_check[i,:] == xs_for_check[j,:]):
-                    break
-            else:
-                indexes.append(i)
-                
+        _, indexes = np.unique(xs_for_check, axis=0, return_index=True)
+                        
         xs_new = xs[indexes,:]
-        ys_new = ys[indexes,:]
-        ids_new = [ids[i] for i in indexes]
+        
+        if ys is None:
+            ys_new = None
+        else:
+            ys_new = ys[indexes,:]
+        
+        if ids is None:
+            ids_new = [i+1 for i in range(xs_new.shape[0])]
+        else:
+            ids_new = [ids[i] for i in indexes]
         
         return xs_new, ys_new, ids_new, indexes
     
+    @staticmethod
+    def remove_duplicate_samples_in_old_database(xs: np.ndarray, xs_old: np.ndarray, 
+                    ys: np.ndarray = None, ids: List[int] = None, 
+                    indexes_parameter: List[int] | None = None) -> Tuple[np.ndarray, np.ndarray, List[int], List[int]]:
+        '''
+        Remove duplicate samples in the new dataset that are already in the old dataset.
+        
+        Parameters
+        ----------------
+        xs: ndarray [n, dim_input]
+            function inputs
+        
+        xs_old: ndarray [n_old, dim_input]
+            function inputs in the old dataset
+        
+        ys: ndarray [n, dim_output] | None
+            function outputs
+        
+        ids: list [n] | None
+            list of sample ID
+        
+        indexes_parameter: list [n_parameter] or None
+            list of indexes of the parameters that are used to determine the uniqueness of the samples.
+            If `indexes_parameter` is None, all parameters are used.
+        
+        Returns
+        ----------------
+        xs_new: ndarray [n_new, dim_input]
+            function inputs
+            
+        ys_new: ndarray [n_new, dim_output] | None
+            function outputs
+            
+        ids_new: list [n_new]
+            list of sample ID
+        
+        indexes: list [n]
+            list of indexes of the unique samples in the original dataset.
+        '''
+        indexes = []
+        
+        xs_for_check = xs if indexes_parameter is None else xs[:,indexes_parameter]
+        xs_old_for_check = xs_old if indexes_parameter is None else xs_old[:,indexes_parameter]
+        
+        for i in range(xs.shape[0]):
+            
+            is_duplicate = False
+            
+            for j in range(xs_old.shape[0]):
+                if np.all(xs_old_for_check[j,:] == xs_for_check[i,:]):
+                    is_duplicate = True
+                    break
+                
+            if not is_duplicate:
+                indexes.append(i)
+                
+        xs_new = xs[indexes,:]
+        
+        if ys is None:
+            ys_new = None
+        else:
+            ys_new = ys[indexes,:]
+            
+        if ids is None:
+            ids_new = [i+1 for i in range(xs_new.shape[0])]
+        else:
+            ids_new = [ids[i] for i in indexes]
+            
+        return xs_new, ys_new, ids_new, indexes      
+
 
 class MultiProcessEvaluation():
     '''
